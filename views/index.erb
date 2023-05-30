@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <title>タイトル</title>
+</head>
+<body>
+  <button class="start-button" onclick="startButtonClick()">スタート</button>
+  <audio id="bgm"  src="audios/bgm.mp3" autoplay loop></audio>
+  <div class="contents">
+    <div class="container">
+      <div class="overlay"></div>
+      <div class="drop-area" id="dropArea">ここにドラッグしてください(上の句)</div>
+      <div class="drop-area" id="dropArea2">ここにドラッグしてください(下の句)</div>
+    </div>
+    <% @randomtitle.each do |key, value| %>
+      <div class="drag-element" draggable="true"><%= value %></div>
+    <% end %>
+    <% @randomtitle = @randomtitle.to_a.shuffle.to_h%>
+    <% @randomtitle.each do |key, value| %>
+     <div class="drag-element" draggable="true"><%= key %></div>
+    <% end %>
+  </div>
+  
+  
+  <script>
+    var textbox1Value = '';
+    var textbox2Value = '';
+    var dropAreas = document.querySelectorAll('.drop-area');
+    var dragElements = document.querySelectorAll('.drag-element');
+    var json = <%= @titleJson %>
+    
+    function startButtonClick() {
+      var startButton = document.querySelector('.start-button');
+      startButton.classList.add('clicked');
+    }
+    
+    document.addEventListener('click', function() {
+    var audio = document.getElementById('bgm');
+    audio.play();
+    
+      // クリックイベントを1回のみ受け付けるため、イベントリスナーを削除
+      document.removeEventListener('click', arguments.callee);
+    });
+
+    dropAreas.forEach(function(dropArea) {
+      dropArea.addEventListener('dragover', function(event) {
+        event.preventDefault();
+      });
+
+      dropArea.addEventListener('drop', function(event) {
+        event.preventDefault();
+        var droppedText = event.dataTransfer.getData('text');
+        dropArea.innerText = droppedText;
+        var targetId = event.target.id;
+        if(targetId == "dropArea"){
+          textbox1Value = droppedText;
+        }
+        else {
+          textbox2Value = droppedText;
+        }
+      });
+    });
+
+    dragElements.forEach(function(dragElement) {
+      dragElement.addEventListener('dragstart', function(event) {
+        event.dataTransfer.setData('text', dragElement.innerText);
+      });
+      
+      // テキストボックスの値を更新
+      dragElement.addEventListener('dragend', function(event) {
+        var data = event.dataTransfer.getData("text/plain");
+        if (textbox1Value !== '' && textbox2Value !== '') {
+          isKeyAndValueExist(json, textbox1Value,textbox2Value, data);
+        }
+      });
+    });
+    
+    function isKeyAndValueExist(hash, key, value, dropdata) {
+      if(hash.hasOwnProperty(key) && hash[key] === value){
+        removeObjectByInnerText(key, value);
+        resetDragAndDropText();
+      }
+    }
+    
+    function removeObjectByInnerText(text1, text2) {
+      var container = document.querySelector(".contents");
+      var objects = container.getElementsByClassName("drag-element");
+      // テキストを比較して一致するオブジェクトを削除
+      for (var i = 0; i < objects.length; i++) {
+        if (objects[i].innerText === text1) {
+          objects[i].parentNode.removeChild(objects[i]);
+          for (var i = 0; i < objects.length; i++) {
+            if (objects[i].innerText === text2) {
+              objects[i].parentNode.removeChild(objects[i]);
+              
+              break; // 一致するオブジェクトが見つかったらループを終了
+            }
+          }  
+          break; // 一致するオブジェクトが見つかったらループを終了
+        }
+      }
+    
+    }
+    function resetDragAndDropText() {
+      var dragElements = document.querySelectorAll('.drop-area');
+      
+      // ドラッグ要素のテキストをリセット
+      dragElements.forEach(function(dragElement) {
+        dragElement.innerText = "ここにドラッグしてください";
+      });
+    }
+  </script>
+</body>
+</html>
